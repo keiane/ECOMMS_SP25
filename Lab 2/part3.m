@@ -2,117 +2,58 @@
 % Spectral Analysis of AM Signals
 % Group 3
 
+% Case 1: 
 clc; clear; close all;
 
-% define parameters
-fs = 100000;  % Sampling frequency (100 kHz)
-T = 0.01;     % Duration (10 ms)
-t = 0:1/fs:T-1/fs;  % Time vector
+% initialize parameters for carrier amplitude, message modulation, modulation
+% + carrier frequency, sampling frequency, duration, time vector
+Ac = 1.2;        
+Am = 0.5;    
+fm = 1.25e3;      
+fc = 6.25e3;     
+fs = 200e3; % sample at 200 kHz
+T = 1e-3;     
+t = 0:1/fs:T;  
 
-% define AM signal parameters
-Ac = 1;       % Carrier amplitude
-Am = 0.5;     % Modulation index
-fm = 5000;    % Modulating frequency (5 kHz)
-fc = 25000;   % Carrier frequency (25 kHz)
+% generate signal s(t)
+s_t = Ac *(1+Am*cos(2*pi*fm*t)).*cos(2*pi*fc*t);
 
-% generate AM signal: s(t) = Ac [1 + Am cos(2πfmt)] cos(2πfct)
-s_am = Ac * (1 + Am * cos(2 * pi * fm * t)) .* cos(2 * pi * fc * t);
+% add noise to signal according to the snr given
+SNR_dB = 0;                            
+signal_power = mean(s_t.^2);             
+noise_power = signal_power / (10^(SNR_dB/10)); 
+noise = sqrt(noise_power) * randn(size(s_t)); 
+s_t_noisy = s_t + noise;                 
 
-% plot time-domain AM signal
-figure;
-plot(t, s_am);
-title('AM Signal in Time Domain');
-xlabel('Time (s)');
+% plot results (time domain plot for 1ms)
+% Noisy time domain of problem 3.3 - 1ms duration
+plot(t*1e3, s_t_noisy);
+xlabel('Time (ms)');
 ylabel('Amplitude');
+title(['Noisy Bandpass AM Signal Problem 3.3(SNR = ' num2str(SNR_dB) ' dB)']);
 grid on;
+xlim([0 1]); 
 
-% compute FT
-S_f = fft(s_am);
-N = length(S_f);
-f = fs * (-N/2:N/2-1) / N;  % Frequency vector (centered at 0 Hz)
+% fourier transform the AM signal
+N = length(s_t);
+S_f_clean = abs(fftshift(fft(s_t, N))) / N;  
+S_f_noisy = abs(fftshift(fft(s_t_noisy, N))) / N; 
+f = linspace(-fs/2, fs/2, N);        
 
-% shift FFT for better visualization
-S_magnitude = abs(fftshift(S_f)) / max(abs(S_f)); % Normalize
-
-% plot Frequency Spectrum
+%plot freq spectrum (problem 3.1) 
 figure;
-plot(f, S_magnitude);
-title('Spectrum of AM Signal');
-xlabel('Frequency (Hz)');
-ylabel('Normalized Amplitude');
+plot(f/1e3, S_f_clean);
+xlabel('Frequency (kHz)');
+ylabel('Magnitude');
+title('Frequency Spectrum of AM Signal (Problem 3.1)');
 grid on;
-xlim([-fc-2*fm fc+2*fm]); % Focus on AM bandwidth
+lim([-50 50]); 
 
-% add noise and analyze signal in time and frequency domain
-SNR_dB = 10; % Define SNR
-SNR = 10^(SNR_dB/10); % Convert dB to linear scale
-sigma_s2 = var(s_am); % Compute signal power
-sigma_n2 = sigma_s2 / SNR; % Compute required noise power
-sigma_n = sqrt(sigma_n2); % Noise standard deviation
-
-n = sigma_n * randn(size(t)); % Generate Gaussian noise
-s_noisy = s_am + n; % Add noise
-
-% plot time-domain noisy AM signal
+% plot freq for 3.3
 figure;
-plot(t, s_noisy);
-title(['Noisy AM Signal with SNR = ', num2str(SNR_dB), ' dB']);
-xlabel('Time (s)');
-ylabel('Amplitude');
+plot(f/1e3, S_f_noisy);
+xlabel('Frequency (kHz)');
+ylabel('Magnitude');
+title(['Frequency Spectrum of Noisy AM Signal for Problem 3.3 (SNR = ' num2str(SNR_dB) ' dB)']);
 grid on;
-
-% compute and plot frequency spectrum of noisy AM signal
-S_f_noisy = fft(s_noisy);
-S_magnitude_noisy = abs(fftshift(S_f_noisy)) / max(abs(S_f_noisy));
-
-figure;
-plot(f, S_magnitude_noisy);
-title(['Spectrum of Noisy AM Signal (SNR = ', num2str(SNR_dB), ' dB)']);
-xlabel('Frequency (Hz)');
-ylabel('Normalized Amplitude');
-grid on;
-xlim([-fc-2*fm fc+2*fm]);
-
-% experiment with various values for fm, fc, and SNR
-fm_list = [2000, 7000];  % Different modulating frequencies
-fc_list = [20000, 30000]; % Different carrier frequencies
-SNR_list = [5, 20];       % Different SNR values
-
-for i = 1:length(fm_list)
-    for j = 1:length(fc_list)
-        for k = 1:length(SNR_list)
-            fm = fm_list(i);
-            fc = fc_list(j);
-            SNR_dB = SNR_list(k);
-            
-            % Generate new AM signal
-            s_am = Ac * (1 + Am * cos(2 * pi * fm * t)) .* cos(2 * pi * fc * t);
-            
-            % Compute new noise
-            SNR = 10^(SNR_dB/10);
-            sigma_s2 = var(s_am);
-            sigma_n2 = sigma_s2 / SNR;
-            sigma_n = sqrt(sigma_n2);
-            n = sigma_n * randn(size(t));
-            
-            % Add noise
-            s_noisy = s_am + n;
-            
-            % Compute FFT
-            S_f_noisy = fft(s_noisy);
-            S_magnitude_noisy = abs(fftshift(S_f_noisy)) / max(abs(S_f_noisy));
-            
-            % Plot new spectrum
-            figure;
-            plot(f, S_magnitude_noisy);
-            title(['Spectrum of AM Signal (fm=', num2str(fm), ' Hz, fc=', num2str(fc), ...
-                   ' Hz, SNR=', num2str(SNR_dB), ' dB)']);
-            xlabel('Frequency (Hz)');
-            ylabel('Normalized Amplitude');
-            grid on;
-            xlim([-fc-2*fm fc+2*fm]);
-        end
-    end
-end
-
-disp('Done.');
+xlim([-50 50]); 
