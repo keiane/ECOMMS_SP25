@@ -1,5 +1,5 @@
 % ECE 09433 - Lab 3
-% Task 2: AM Modulation and Demodulation
+% Task 1: DSB-SC Modulation and Demodulation
 % Group 3
 
 % define parameters
